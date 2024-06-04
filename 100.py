@@ -1,5 +1,7 @@
 from hl7apy.core import Message
 from datetime import datetime
+import socket
+
 
 def generate_hl7_message(msg_id):
     # Initialize the HL7 message with the ORM_O01 message type
@@ -66,3 +68,5 @@ def generate_hl7_message(msg_id):
 # Generate HL7 messages from 18 to 100 as .txt files
 for i in range(69,81):
     generate_hl7_message(i)
+
+
