@@ -85,7 +85,7 @@ def generate_hl7_message(msg_id):
 
     # Create and populate the ORC segment with common order information
     orc = msg.add_segment("ORC")
-    orc.orc_1 = "CM"
+    orc.orc_1 = ""
     orc.orc_2 = placer_order_number  # Placer order number (random numeric)
     orc.orc_3 = filler_order_number  # Filler order number (random numeric)
     orc.orc_5 = next(order_control_codes)  # Sequential order control code
