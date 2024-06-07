@@ -14,7 +14,12 @@ medical_procedures = [
     "CT^CT Scan",
     "MRI^MRI Brain",
     "US^Ultrasound Abdomen",
-    
+    "ECG^Electrocardiogram",
+    "BLOOD^Blood Test",
+    "BIOPSY^Biopsy",
+    "URINE^Urine Test",
+    "COLON^Colonoscopy",
+    "MAMMO^Mammography"
 ]
 
 # List of common clinical reasons for study
@@ -34,8 +39,8 @@ clinical_reasons = [
 # List of Australian states
 australian_states = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
 
-# Cycle through the list of order control codes
-order_control_codes = cycle(["SC", "IP", "OC"])
+# List of order control codes
+order_control_codes_list = ["CM", "CA", "DC", "HD"]
 
 def generate_random_numeric(length=8):
     """Generate a random numeric string of given length."""
@@ -56,9 +61,11 @@ def generate_hl7_message(msg_id):
     msg.msh.msh_12 = "2.4"
 
     # Create and populate the PID segment with patient information
+    last_name = fake.last_name()
+    first_name = fake.first_name()
     pid = msg.add_segment("PID")
     pid.pid_3 = f"TEST1{msg_id:04d}"  # Patient identifier with leading zeros
-    pid.pid_5 = f"{fake.last_name()}^{fake.first_name()}"
+    pid.pid_5 = f"{last_name}^{first_name}"
     pid.pid_7 = fake.date_of_birth(minimum_age=0, maximum_age=90).strftime("%Y%m%d")  # Random DOB
     pid.pid_8 = random.choice(["M", "F"])  # Random gender
     pid.pid_11 = f"{fake.street_address()}^^{fake.city()}^{random.choice(australian_states)}^{fake.postcode()}^AU"  # Australian address with random state
@@ -80,10 +87,10 @@ def generate_hl7_message(msg_id):
 
     # Create and populate the ORC segment with common order information
     orc = msg.add_segment("ORC")
-    orc.orc_1 = ""
+    orc.orc_1 = "CM"
     orc.orc_2 = placer_order_number  # Placer order number (random numeric)
     orc.orc_3 = filler_order_number  # Filler order number (random numeric)
-    orc.orc_5 = next(order_control_codes)  # Sequential order control code
+    orc.orc_5 = "CM"  # Placeholder, will be updated
     orc.orc_9 = datetime.now().strftime("%Y%m%d%H%M")
     orc.orc_12 = "12345^IMED CLINIC^^^"
     orc.orc_14 = f"{random.randint(10000, 99999)}^PH"
@@ -102,7 +109,7 @@ def generate_hl7_message(msg_id):
     obr.obr_16 = "12345^Smith^John^MD^Dr."
     obr.obr_31 = random.choice(clinical_reasons)  # Random clinically relevant reason for study
 
-    return msg.to_er7()
+    return msg, orc, obr
 
 def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
     # MLLP framing
@@ -119,5 +126,8 @@ def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
 
 # Generate and send HL7 messages from 1 to 9
 for i in range(1, 10):
-    hl7_message = generate_hl7_message(i)
-    send_hl7_message(hl7_message, ports=[2575, 2576])
+    hl7_message, orc, obr = generate_hl7_message(i)
+    for orc5 in order_control_codes_list:
+        orc.orc_5 = orc5
+        orc_orb_msg = f"{hl7_message.to_er7()}\n{orc.to_er7()}\n{obr.to_er7()}"
+        send_hl7_message(orc_orb_msg, ports=[2575, 2576])
