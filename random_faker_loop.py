@@ -14,12 +14,7 @@ medical_procedures = [
     "CT^CT Scan",
     "MRI^MRI Brain",
     "US^Ultrasound Abdomen",
-    "ECG^Electrocardiogram",
-    "BLOOD^Blood Test",
-    "BIOPSY^Biopsy",
-    "URINE^Urine Test",
-    "COLON^Colonoscopy",
-    "MAMMO^Mammography"
+    
 ]
 
 # List of common clinical reasons for study
