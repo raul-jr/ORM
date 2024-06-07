@@ -35,7 +35,11 @@ clinical_reasons = [
 australian_states = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
 
 # List of order control codes
-order_control_codes_list = ["CM", "CA", "DC", "HD"]
+order_control_codes_list = ["SC", "IP", "OC","CA"]
+
+
+#Medical Insurance
+pv20_choice = ["MB","BUPA","HCF","NIB"]
 
 def generate_random_numeric(length=8):
     """Generate a random numeric string of given length."""
@@ -72,7 +76,7 @@ def generate_hl7_message(msg_id):
     pv1.pv1_3 = "PH"
     pv1.pv1_17 = f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  # Random attending doctor
     pv1.pv1_19 = f"V{msg_id:04d}"  # Visit number with leading zeros
-    pv1.pv1_20 = "MB"
+    pv1.pv1_20 = random.choice(pv20_choice)
     pv1.pv1_39 = "I^IMED"
     pv1.pv1_44 = datetime.now().strftime("%Y%m%d%H%M")
 
@@ -82,7 +86,7 @@ def generate_hl7_message(msg_id):
 
     # Create and populate the ORC segment with common order information
     orc = msg.add_segment("ORC")
-    orc.orc_1 = "CM"
+    orc.orc_1 = ""
     orc.orc_2 = placer_order_number  # Placer order number (random numeric)
     orc.orc_3 = filler_order_number  # Filler order number (random numeric)
     orc.orc_5 = "CM"  # Placeholder, will be updated
@@ -120,7 +124,7 @@ def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
             print(f"Received from port {port}: {response.decode()}")
 
 # Generate and send HL7 messages from 1 to 9
-for i in range(1, 10):
+for i in range(1, 5):
     hl7_message, orc, obr = generate_hl7_message(i)
     for orc5 in order_control_codes_list:
         orc.orc_5 = orc5
