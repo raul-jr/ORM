@@ -10,10 +10,22 @@ fake = Faker('en_AU')
 
 # List of common medical procedures or observations
 medical_procedures = [
-    "XRAY^Chest X-Ray",
-    "CT^CT Scan",
-    "MRI^MRI Brain",
-    "US^Ultrasound Abdomen",
+"CTA^CT ABDOMEN AND PELVIS",
+"CTANGIO^CT ANGIOGRAM",
+"CTLAR^CT RIGHT ANKLE",
+"CTCARDIAC^CT CARDIAC"
+"DEXASC^DEXA",
+"MRHBCN^MRI BRAIN",
+"MRNRKL^MRI LEFT KNEE",
+"MRI^MRI NR PELVIS",
+"MRSBF^MRI FOR FISTULISING PERIANAL",
+"CTNECKW^CT PARORTID AND NECK",
+"USA^US ABDOMEN",
+"USACHILLES^US LEFT ACHILLES",
+"USNUCHA^US NUCHAL TRANSLUCENCY",
+"USPREGLV2^US PREGNANCY LV2 2O WEEKS",
+"XRCHESTW^XR CHEST",
+"XRSPINE^XR C SPINE"
     
 ]
 
@@ -24,11 +36,12 @@ clinical_reasons = [
     "Head injury",
     "Routine check-up",
     "High blood pressure",
-    "Abnormal lab results",
+    "Sport injury shoulder",
     "Follow-up study",
     "Pre-operative evaluation",
     "Shortness of breath",
-    "Persistent cough"
+    "Persistent cough",
+    "Car Accident"
 ]
 
 # List of Australian states
@@ -59,7 +72,7 @@ def generate_hl7_message(msg_id):
     msg.msh.msh_9 = "ORM^O01"
     msg.msh.msh_10 = str(random.randint(1000000000, 9999999999))  # Random numeric Message Control ID
     msg.msh.msh_11 = "P"
-    msg.msh.msh_12 = "2.4"
+    msg.msh.msh_12 = "2.3.1"
 
     # Create and populate the PID segment with patient information
     pid = msg.add_segment("PID")
@@ -106,7 +119,7 @@ def generate_hl7_message(msg_id):
     obr.obr_8 = datetime.now().strftime("%Y%m%d%H%M")
     obr.obr_10 = ""
     obr.obr_16 = attending_doctor
-    obr.obr_31 = random.choice(clinical_reasons)  # Random clinically relevant reason for study
+    obr.obr_31 = random.choice(clinical_reasons ) # Random clinically relevant reason for study
 
     return msg.to_er7()
 
@@ -124,6 +137,6 @@ def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
             print(f"Received from port {port}: {response.decode()}")
 
 # Generate and send HL7 messages from 1 to 9
-for i in range(1, 5):
+for i in range(1, 6):
     hl7_message = generate_hl7_message(i)
     send_hl7_message(hl7_message, ports=[2575, 2576])
