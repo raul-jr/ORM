@@ -14,7 +14,6 @@ medical_procedures = [
     "CT^CT Scan",
     "MRI^MRI Brain",
     "US^Ultrasound Abdomen",
-    
 ]
 
 # List of common clinical reasons for study
@@ -35,21 +34,21 @@ clinical_reasons = [
 australian_states = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
 
 # Cycle through the list of order control codes
-order_control_codes = cycle(["SC", "IP", "OC","HD"])
+order_control_codes = cycle(["SC", "IP", "OC", "HD"])
 
-#Medical Insurance
-pv20_choice = ["MB","BUPA","HCF","NIB"]
+# Medical Insurance
+pv20_choice = ["MB", "BUPA", "HCF", "NIB"]
 
 def generate_random_numeric(length=8):
     """Generate a random numeric string of given length."""
     return ''.join(random.choices(string.digits, k=length))
 
-def generate_hl7_message(msg_id):
+def generate_hl7_message(msg_id, order_control_code):
     # Initialize the HL7 message with the ORM_O01 message type
     msg = Message("ORM_O01")
 
     # Populate the MSH segment with necessary fields
-    msg.msh.msh_3 = random.choice (["COMRAD","VISAGE"])
+    msg.msh.msh_3 = random.choice(["COMRAD", "VISAGE"])
     msg.msh.msh_5 = "ReceivingApp"
     msg.msh.msh_6 = "ReceivingFacility"
     msg.msh.msh_7 = datetime.now().strftime("%Y%m%d%H%M")
@@ -86,7 +85,7 @@ def generate_hl7_message(msg_id):
     orc.orc_1 = ""
     orc.orc_2 = placer_order_number  # Placer order number (random numeric)
     orc.orc_3 = filler_order_number  # Filler order number (random numeric)
-    orc.orc_5 = next(order_control_codes)  # Sequential order control code
+    orc.orc_5 = order_control_code  # Sequential order control code
     orc.orc_9 = datetime.now().strftime("%Y%m%d%H%M")
     orc.orc_12 = "12345^IMED CLINIC^^^"
     orc.orc_14 = f"{random.randint(10000, 99999)}^PH"
@@ -120,7 +119,10 @@ def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
             response = s.recv(1024)
             print(f"Received from port {port}: {response.decode()}")
 
-# Generate and send HL7 messages from 1 to 9
+# Generate and send HL7 messages for a single patient with different ORC-5 values
 for i in range(1, 5):
-    hl7_message = generate_hl7_message(i)
-    send_hl7_message(hl7_message, ports=[2575, 2576])
+    base_hl7_message = generate_hl7_message(i, next(order_control_codes))  # Generate base message with initial ORC-5
+
+    for order_control_code in ["SC", "IP", "OC", "HD"]:
+        hl7_message = generate_hl7_message(i, order_control_code)  # Generate message with specific ORC-5 value
+        send_hl7_message(hl7_message, ports=[2575, 2576])
