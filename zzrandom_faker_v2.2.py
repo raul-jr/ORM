@@ -5,6 +5,7 @@ import random
 from faker import Faker
 import string
 
+# Initialize Faker for generating random patient data
 fake = Faker('en_AU')
 
 # List of common medical procedures or observations
@@ -33,7 +34,7 @@ clinical_reasons = [
 australian_states = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
 
 # Order control codes
-order_control_codes = ["IP", "OC"]
+order_control_codes = ["SC", "IP", "OC", "HD"]
 
 # Medical Insurance
 pv20_choice = ["MB", "BUPA", "HCF", "NIB"]
@@ -78,10 +79,9 @@ def generate_hl7_message(patient_data, visit_data, order_data, orc_5):
 
     # Create and populate the ORC segment with common order information
     orc = msg.add_segment("ORC")
-    orc.orc_1 = ""
+    orc.orc_1 = orc_5
     orc.orc_2 = order_data['placer_order_number']
     orc.orc_3 = order_data['filler_order_number']
-    orc.orc_5 = orc_5
     orc.orc_9 = datetime.now().strftime("%Y%m%d%H%M")
     orc.orc_12 = "12345^IMED CLINIC^^^"
     orc.orc_14 = order_data['orc_14']
@@ -96,7 +96,6 @@ def generate_hl7_message(patient_data, visit_data, order_data, orc_5):
     obr.obr_6 = datetime.now().strftime("%Y%m%d%H%M")
     obr.obr_7 = datetime.now().strftime("%Y%m%d%H%M")
     obr.obr_8 = datetime.now().strftime("%Y%m%d%H%M")
-    obr.obr_10 = ""
     obr.obr_16 = visit_data['attending_doctor']
     obr.obr_31 = order_data['obr_31']
 
@@ -118,7 +117,8 @@ def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
 # Generate and send HL7 messages for each patient in sequence with SC, IP, OC, HD
 for i in range(1, 26):
     patient_data = {
-        "msh_3": random.choice(["COMRAD", "VISAGE"]),
+        "msh_3": random.choice(["COMRAD", "Promedicus"]),
+        "msh_4": "SendingFacility",
         "pid_3": f"TEST1{i:04d}",
         "pid_5": f"{fake.last_name()}^{fake.first_name()}",
         "pid_7": fake.date_of_birth(minimum_age=0, maximum_age=90).strftime("%Y%m%d"),

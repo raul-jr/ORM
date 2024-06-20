@@ -33,7 +33,7 @@ clinical_reasons = [
 australian_states = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
 
 # Order control codes
-order_control_codes = ["SC", "IP", "OC", "HD"]
+order_control_codes = ["IP", "OC"]
 
 # Medical Insurance
 pv20_choice = ["MB", "BUPA", "HCF", "NIB"]
@@ -124,7 +124,7 @@ order_data_list = []
 
 for i in range(1, num_patients + 1):
     patient_data = {
-        "msh_3": random.choice(["COMRAD", "VISAGE"]),
+        "msh_3": random.choice(["COMRAD", "ProMedicus"]),
         "pid_3": f"TEST1{i:04d}",
         "pid_5": f"{fake.last_name()}^{fake.first_name()}",
         "pid_7": fake.date_of_birth(minimum_age=0, maximum_age=90).strftime("%Y%m%d"),
@@ -153,6 +153,6 @@ for i in range(1, num_patients + 1):
 
 # Send messages in intervals of 6 patients with the same control code
 for idx, (patient_data, visit_data, order_data) in enumerate(zip(patient_data_list, visit_data_list, order_data_list)):
-    orc_5 = order_control_codes[(idx // interval) % 4]
+    orc_5 = order_control_codes[(idx // interval) % 2]  # Rotating between "IP" and "OC"
     hl7_message = generate_hl7_message(patient_data, visit_data, order_data, orc_5)
     send_hl7_message(hl7_message, ports=[2575, 2576])

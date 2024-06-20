@@ -43,12 +43,12 @@ def generate_random_numeric(length=8):
     """Generate a random numeric string of given length."""
     return ''.join(random.choices(string.digits, k=length))
 
-def generate_hl7_message(patient_data, visit_data, order_data, orc_5):
+def generate_hl7_message(patient_id, last_name, first_name, dob, gender, address, city, state, postcode, order_control_code):
     # Initialize the HL7 message with the ORM_O01 message type
     msg = Message("ORM_O01")
 
     # Populate the MSH segment with necessary fields
-    msg.msh.msh_3 = patient_data['msh_3']
+    msg.msh.msh_3 = random.choice(["COMRAD", "VISAGE"])
     msg.msh.msh_5 = "ReceivingApp"
     msg.msh.msh_6 = "ReceivingFacility"
     msg.msh.msh_7 = datetime.now().strftime("%Y%m%d%H%M")
@@ -59,102 +59,78 @@ def generate_hl7_message(patient_data, visit_data, order_data, orc_5):
 
     # Create and populate the PID segment with patient information
     pid = msg.add_segment("PID")
-    pid.pid_3 = patient_data['pid_3']
-    pid.pid_5 = patient_data['pid_5']
-    pid.pid_7 = patient_data['pid_7']
-    pid.pid_8 = patient_data['pid_8']
-    pid.pid_11 = patient_data['pid_11']
+    pid.pid_3 = patient_id  # Patient identifier
+    pid.pid_5 = f"{last_name}^{first_name}"
+    pid.pid_7 = dob  # DOB
+    pid.pid_8 = gender  # Gender
+    pid.pid_11 = f"{address}^^{city}^{state}^{postcode}^AU"  # Address
 
     # Create and populate the PV1 segment with patient visit information
     pv1 = msg.add_segment("PV1")
     pv1.pv1_1 = "1"
     pv1.pv1_2 = "O"
     pv1.pv1_3 = "PH"
-    pv1.pv1_17 = visit_data['attending_doctor']
-    pv1.pv1_19 = visit_data['pv1_19']
-    pv1.pv1_20 = visit_data['pv1_20']
+    pv1.pv1_17 = f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  # Random attending doctor
+    pv1.pv1_19 = f"V{patient_id[-4:]}"  # Visit number derived from patient ID
+    pv1.pv1_20 = random.choice(pv20_choice)
     pv1.pv1_39 = "I^IMED"
     pv1.pv1_44 = datetime.now().strftime("%Y%m%d%H%M")
 
+    # Create a random numeric string for ORC-2 and OBR-2, and ORC-3 and OBR-3
+    placer_order_number = generate_random_numeric()
+    filler_order_number = generate_random_numeric()
+
     # Create and populate the ORC segment with common order information
     orc = msg.add_segment("ORC")
-    orc.orc_1 = ""
-    orc.orc_2 = order_data['placer_order_number']
-    orc.orc_3 = order_data['filler_order_number']
-    orc.orc_5 = orc_5
+    orc.orc_1 = order_control_code
+    orc.orc_2 = placer_order_number  # Placer order number (random numeric)
+    orc.orc_3 = filler_order_number  # Filler order number (random numeric)
+    orc.orc_5 = order_control_code  # Order control code
     orc.orc_9 = datetime.now().strftime("%Y%m%d%H%M")
     orc.orc_12 = "12345^IMED CLINIC^^^"
-    orc.orc_14 = order_data['orc_14']
+    orc.orc_14 = f"{random.randint(10000, 99999)}^PH"
     orc.orc_17 = "IMED"
 
     # Create and populate the OBR segment with observation request information
     obr = msg.add_segment("OBR")
     obr.obr_1 = "1"
-    obr.obr_2 = order_data['placer_order_number']
-    obr.obr_3 = order_data['filler_order_number']
-    obr.obr_4 = order_data['obr_4']
+    obr.obr_2 = placer_order_number  # Placer order number (random numeric)
+    obr.obr_3 = filler_order_number  # Filler order number (random numeric)
+    obr.obr_4 = random.choice(medical_procedures)  # Random Universal Service Identifier
     obr.obr_6 = datetime.now().strftime("%Y%m%d%H%M")
     obr.obr_7 = datetime.now().strftime("%Y%m%d%H%M")
     obr.obr_8 = datetime.now().strftime("%Y%m%d%H%M")
-    obr.obr_10 = ""
-    obr.obr_16 = visit_data['attending_doctor']
-    obr.obr_31 = order_data['obr_31']
+    obr.obr_10 = "COMRAD"
+    obr.obr_16 = "12345^Smith^John^MD^Dr."
+    obr.obr_31 = random.choice(clinical_reasons)  # Random clinically relevant reason for study
 
     return msg.to_er7()
 
 def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
     # MLLP framing
     mllp_message = f'\x0B{message}\x1C\x0D'
-
+    
     for port in ports:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((host, port))
             s.sendall(mllp_message.encode())
-
+            
             # Optionally, receive the response from the server
             response = s.recv(1024)
             print(f"Received from port {port}: {response.decode()}")
 
-# Generate initial HL7 messages and store segments' data
-initial_messages = []
-patient_data_list = []
-visit_data_list = []
-order_data_list = []
+# Generate patient information
+patient_id = "TEST10001"
+last_name = fake.last_name()
+first_name = fake.first_name()
+dob = fake.date_of_birth(minimum_age=0, maximum_age=90).strftime("%Y%m%d")
+gender = random.choice(["M", "F"])
+address = fake.street_address()
+city = fake.city()
+state = random.choice(australian_states)
+postcode = fake.postcode()
 
-for i in range(1,25):
-    patient_data = {
-        "msh_3": random.choice(["COMRAD", "VISAGE"]),
-        "pid_3": f"TEST1{i:04d}",
-        "pid_5": f"{fake.last_name()}^{fake.first_name()}",
-        "pid_7": fake.date_of_birth(minimum_age=0, maximum_age=90).strftime("%Y%m%d"),
-        "pid_8": random.choice(["M", "F"]),
-        "pid_11": f"{fake.street_address()}^^{fake.city()}^{random.choice(australian_states)}^{fake.postcode()}^AU"
-    }
-    attending_doctor = f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."
-    visit_data = {
-        "attending_doctor": attending_doctor,
-        "pv1_19": f"V{i:04d}",
-        "pv1_20": random.choice(pv20_choice),
-    }
-    placer_order_number = generate_random_numeric()
-    filler_order_number = generate_random_numeric()
-    order_data = {
-        "placer_order_number": placer_order_number,
-        "filler_order_number": filler_order_number,
-        "orc_14": f"{random.randint(10000, 99999)}^PH",
-        "obr_4": random.choice(medical_procedures),
-        "obr_31": random.choice(clinical_reasons)
-    }
-    
-    patient_data_list.append(patient_data)
-    visit_data_list.append(visit_data)
-    order_data_list.append(order_data)
-    
-    hl7_message = generate_hl7_message(patient_data, visit_data, order_data, next(order_control_codes))
-    initial_messages.append(hl7_message)
+# Generate and send HL7 messages with cycling order control codes for the same patient
+for order_control_code in ["IP", "OC"]:
+    hl7_message = generate_hl7_message(patient_id, last_name, first_name, dob, gender, address, city, state, postcode, order_control_code)
     send_hl7_message(hl7_message, ports=[2575, 2576])
-
-# Resend the original HL7 message with updated ORC-5 field
-for i, (patient_data, visit_data, order_data) in enumerate(zip(patient_data_list, visit_data_list, order_data_list), start=1):
-    updated_hl7_message = generate_hl7_message(patient_data, visit_data, order_data, next(order_control_codes))
-    send_hl7_message(updated_hl7_message, ports=[2575, 2576])

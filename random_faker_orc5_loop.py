@@ -5,6 +5,7 @@ import random
 from faker import Faker
 import string
 from itertools import cycle
+import time
 
 fake = Faker('en_AU')
 
@@ -47,26 +48,13 @@ clinical_reasons = [
 # List of Australian states
 australian_states = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
 
-# cycle over sendng applictions
-sending_applications = cycle(["XRGE","SIRJ"])
-
-# cycle ove sending facility
-sending_facility = cycle(["COMRAD", "ProMedicus"])
-
 # Cycle through the list of order control codes
-order_control_codes = cycle(["CM"]) # use CM status # PSOne uses "IP"
-
-#Entering Organization ORC 17.1
-site_code = cycle (["Bairnsdale","Collins Street Medical Imaging","Box Hill",
-"Castle Hill", "Chatswood","Ipswich","Fortitude Valley",
-"Hobart Private Hospital","Latrobe Regional Hospital","West Gippsland"
-"Yarrawonga","Launcheston General Hopital"
-])
+order_control_codes = cycle(["IP","OC"])
 
 #Medical Insurance
 pv20_choice = ["MB","BUPA","HCF","NIB"]
 # Random attending doctor
-#attending_doctor=f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  
+attending_doctor=f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  
 
 def generate_random_numeric(length=8):
     """Generate a random numeric string of given length."""
@@ -77,8 +65,8 @@ def generate_hl7_message(msg_id):
     msg = Message("ORM_O01")
 
     # Populate the MSH segment with necessary fields
-    msg.msh.msh_3 = next(sending_applications)  # Sending Application
-    msg.msh.msh_4 = next(sending_facility)  # Sending Facility
+    msg.msh.msh_3 = "" # Sending Application
+    msg.msh.msh_4 = random.choice (["COMRAD","ProMedicus"])
     msg.msh.msh_5 = ""
     msg.msh.msh_6 = "ReceivingFacility"
     msg.msh.msh_7 = datetime.now().strftime("%Y%m%d%H%M")
@@ -86,7 +74,7 @@ def generate_hl7_message(msg_id):
     msg.msh.msh_10 = str(random.randint(1000000000, 9999999999))  # Random numeric Message Control ID
     msg.msh.msh_11 = "P"
     msg.msh.msh_12 = "2.3.1"
-      
+
     # Create and populate the PID segment with patient information
     pid = msg.add_segment("PID")
     pid.pid_3 = f"TEST1{msg_id:04d}"  # Patient identifier with leading zeros
@@ -99,8 +87,8 @@ def generate_hl7_message(msg_id):
     pv1 = msg.add_segment("PV1")
     pv1.pv1_1 = "1"
     pv1.pv1_2 = "O"
-    pv1.pv1_3 = "OU"
-    pv1.pv1_17 = f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  # Random attending doctor
+    pv1.pv1_3 = "PH"
+    pv1.pv1_17 = attending_doctor #f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  # Random attending doctor
     pv1.pv1_19 = f"V{msg_id:04d}"  # Visit number with leading zeros
     pv1.pv1_20 = random.choice(pv20_choice)
     pv1.pv1_39 = "I^IMED"
@@ -117,9 +105,9 @@ def generate_hl7_message(msg_id):
     orc.orc_3 = filler_order_number  # Filler order number (random numeric)
     orc.orc_5 = next(order_control_codes)  # Sequential order control code
     orc.orc_9 = datetime.now().strftime("%Y%m%d%H%M")
-    orc.orc_12 = f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  
+    orc.orc_12 = attending_doctor
     orc.orc_14 = f"{random.randint(10000, 99999)}^PH"
-    orc.orc_17 = f"IMED Radiology - ^{next(site_code)}^[IMED-IT]"
+    orc.orc_17 = "IMED Radiology"
 
     # Create and populate the OBR segment with observation request information
     obr = msg.add_segment("OBR")
@@ -131,11 +119,11 @@ def generate_hl7_message(msg_id):
     obr.obr_7 = datetime.now().strftime("%Y%m%d%H%M")
     obr.obr_8 = datetime.now().strftime("%Y%m%d%H%M")
     obr.obr_10 = ""
-    obr.obr_16 = f"{random.randint(10000, 99999)}^{fake.last_name()}^{fake.first_name()}^MD^Dr."  
+    obr.obr_16 = attending_doctor
     obr.obr_31 = random.choice(clinical_reasons ) # Random clinically relevant reason for study
 
     return msg.to_er7()
-"""
+
 #def send_hl7_message(message, host="192.168.1.10", ports=[2575, 2576]):
 def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
     # MLLP framing
@@ -143,34 +131,32 @@ def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
     
     for port in ports:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((host, port))
-            s.sendall(mllp_message.encode())
-            
-            # Optionally, receive the response from the server
-            response = s.recv(1024)
-            print(f"Received from port {port}: {response.decode()}")
-
-# Generate and send HL7 messages from 1 to 9
-for i in range(1, 3):
-    hl7_message = generate_hl7_message(i)
-    send_hl7_message(hl7_message, ports=[2575, 2576])"""
-
-
-def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
-    # MLLP framing
-    mllp_message = f'\x0B{message}\x1C\x0D'
-    
-    for port in ports:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5)  # Set the timeout for this socket
+            try:
                 s.connect((host, port))
                 s.sendall(mllp_message.encode())
+                
+                # Optionally, receive the response from the server
                 response = s.recv(1024)
                 print(f"Received from port {port}: {response.decode()}")
-        except Exception as e:
-            print(f"Failed to send message to port {port}: {e}")
+            except socket.timeout:
+                print(f"Connection to port {port} timed out.")
+            except socket.error as e:
+                print(f"Socket error occurred: {e}")
+    
 
-if __name__ == "__main__":
-    for i in range(1, 10):
-        hl7_message = generate_hl7_message(i)
-        send_hl7_message(hl7_message, ports=[2575, 2576])
+
+for i in range(1, 6):
+    # Generate the HL7 message
+    hl7_message_ip = generate_hl7_message(i)  # Create HL7 message with control code "IP"
+
+    # Send the message with control code "IP"
+    send_hl7_message(hl7_message_ip, ports=[2575, 2576])
+
+    # Change the control code to "OC" and send the message
+    hl7_message_oc = hl7_message_ip.replace("IP", "OC")
+    send_hl7_message(hl7_message_oc, ports=[2575, 2576])
+
+    # Change the control code back to "IP" for the next iteration
+    hl7_message_ip = hl7_message_ip.replace("OC", "IP")
+    

@@ -34,7 +34,7 @@ clinical_reasons = [
 australian_states = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
 
 # Cycle through the list of order control codes
-order_control_codes = cycle(["SC", "IP", "OC", "HD"])
+order_control_codes = cycle(["IP", "OC"])
 
 # Medical Insurance
 pv20_choice = ["MB", "BUPA", "HCF", "NIB"]
@@ -123,6 +123,6 @@ def send_hl7_message(message, host="127.0.0.1", ports=[2575, 2576]):
 for i in range(1, 5):
     base_hl7_message = generate_hl7_message(i, next(order_control_codes))  # Generate base message with initial ORC-5
 
-    for order_control_code in ["SC", "IP", "OC", "HD"]:
+    for order_control_code in ["IP", "OC"]:
         hl7_message = generate_hl7_message(i, order_control_code)  # Generate message with specific ORC-5 value
         send_hl7_message(hl7_message, ports=[2575, 2576])
