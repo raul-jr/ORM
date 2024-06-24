@@ -84,7 +84,7 @@ def load_obr5_values_from_csv(file_path):
             obr5_values.append(row['OBR-5'])
     return obr5_values
 
-def generate_hl7_message(msg_id,obr5_value):
+def generate_hl7_message(msg_id,obr5_value): # added new parameter read over csv file
     # Initialize the HL7 message with the ORM_O01 message type
     msg = Message("ORM_O01")
 
